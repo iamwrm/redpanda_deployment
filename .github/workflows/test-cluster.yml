@@ -15,28 +15,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download rpk CLI
+      - name: Download and extract Redpanda
         run: |
-          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v25.3.4/rpk-linux-amd64.zip
-          unzip rpk-linux-amd64.zip
-          chmod +x rpk
-          mkdir -p $HOME/.local/bin
-          mv rpk $HOME/.local/bin/
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Download the deb package
+          curl -LO https://dl.redpanda.com/public/redpanda/deb/ubuntu/pool/noble/main/r/re/redpanda_25.3.4-1_amd64.deb
 
-      - name: Start Redpanda container
+          # Extract without installing (no sudo needed)
+          mkdir -p $HOME/redpanda-extract
+          dpkg-deb -x redpanda_25.3.4-1_amd64.deb $HOME/redpanda-extract
+
+          # Set up paths
+          echo "$HOME/redpanda-extract/opt/redpanda/bin" >> $GITHUB_PATH
+          echo "$HOME/redpanda-extract/opt/redpanda/libexec" >> $GITHUB_PATH
+
+      - name: Start Redpanda
         run: |
-          docker run -d --name redpanda \
-            -p 9092:9092 \
-            -p 9644:9644 \
-            docker.redpanda.com/redpandadata/redpanda:v25.3.4 \
-            redpanda start \
+          mkdir -p $HOME/redpanda-data
+
+          export LD_LIBRARY_PATH="$HOME/redpanda-extract/opt/redpanda/lib:$LD_LIBRARY_PATH"
+
+          $HOME/redpanda-extract/opt/redpanda/libexec/redpanda \
             --mode dev-container \
             --smp 1 \
             --memory 1G \
+            --reserve-memory 0M \
             --overprovisioned \
-            --kafka-addr 0.0.0.0:9092 \
-            --advertise-kafka-addr 127.0.0.1:9092
+            --node-id 0 \
+            --kafka-addr 127.0.0.1:9092 \
+            --advertise-kafka-addr 127.0.0.1:9092 \
+            --set redpanda.data_directory=$HOME/redpanda-data \
+            --set redpanda.developer_mode=true \
+            &
 
           echo "Waiting for Redpanda to start..."
           sleep 10
@@ -44,17 +53,16 @@ jobs:
       - name: Wait for cluster to be healthy
         run: |
           for i in {1..30}; do
-            if $HOME/.local/bin/rpk cluster health -X brokers=127.0.0.1:9092 2>/dev/null | grep -q "Healthy:.*true"; then
+            if rpk cluster health -X brokers=127.0.0.1:9092 2>/dev/null | grep -q "Healthy:.*true"; then
               echo "Cluster is healthy!"
-              $HOME/.local/bin/rpk cluster health -X brokers=127.0.0.1:9092
+              rpk cluster health -X brokers=127.0.0.1:9092
               exit 0
             fi
             echo "Waiting for cluster to become healthy... ($i/30)"
             sleep 2
           done
           echo "Cluster failed to become healthy"
-          docker logs redpanda
-          $HOME/.local/bin/rpk cluster health -X brokers=127.0.0.1:9092 || true
+          rpk cluster health -X brokers=127.0.0.1:9092 || true
           exit 1
 
       - name: Create test topic
@@ -85,9 +93,3 @@ jobs:
       - name: Test topic describe
         run: |
           rpk topic describe test-topic -X brokers=127.0.0.1:9092
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker stop redpanda || true
-          docker rm redpanda || true
