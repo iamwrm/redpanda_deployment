@@ -20,89 +20,50 @@ jobs:
           curl -1sLf 'https://dl.redpanda.com/nzc4ZYQK3WRGd9sy/redpanda/cfg/setup/bash.deb.sh' | sudo -E bash
           sudo apt-get install -y redpanda
 
-      - name: Configure and start Redpanda cluster
+      - name: Start single-node Redpanda
         run: |
-          # Create data directories
-          sudo mkdir -p /var/lib/redpanda/data-{0,1,2}
-          sudo chown -R redpanda:redpanda /var/lib/redpanda
-
-          # Start node 0 (seed node)
+          # Start Redpanda in dev mode (single node)
           sudo rpk redpanda start \
-            --node-id 0 \
             --mode dev-container \
             --smp 1 \
             --memory 1G \
             --reserve-memory 0M \
             --overprovisioned \
-            --kafka-addr 127.0.0.1:19092 \
-            --advertise-kafka-addr 127.0.0.1:19092 \
-            --rpc-addr 127.0.0.1:33145 \
-            --advertise-rpc-addr 127.0.0.1:33145 \
-            --set redpanda.data_directory=/var/lib/redpanda/data-0 \
-            --set redpanda.seed_servers='[]' \
             &
 
-          echo "Waiting for seed node to start..."
+          echo "Waiting for Redpanda to start..."
           sleep 10
 
-          # Start node 1
-          sudo rpk redpanda start \
-            --node-id 1 \
-            --mode dev-container \
-            --smp 1 \
-            --memory 1G \
-            --reserve-memory 0M \
-            --overprovisioned \
-            --kafka-addr 127.0.0.1:29092 \
-            --advertise-kafka-addr 127.0.0.1:29092 \
-            --rpc-addr 127.0.0.1:33146 \
-            --advertise-rpc-addr 127.0.0.1:33146 \
-            --set redpanda.data_directory=/var/lib/redpanda/data-1 \
-            --set redpanda.seed_servers='[{host: {address: 127.0.0.1, port: 33145}}]' \
-            &
-
-          # Start node 2
-          sudo rpk redpanda start \
-            --node-id 2 \
-            --mode dev-container \
-            --smp 1 \
-            --memory 1G \
-            --reserve-memory 0M \
-            --overprovisioned \
-            --kafka-addr 127.0.0.1:39092 \
-            --advertise-kafka-addr 127.0.0.1:39092 \
-            --rpc-addr 127.0.0.1:33147 \
-            --advertise-rpc-addr 127.0.0.1:33147 \
-            --set redpanda.data_directory=/var/lib/redpanda/data-2 \
-            --set redpanda.seed_servers='[{host: {address: 127.0.0.1, port: 33145}}]' \
-            &
-
-          echo "Waiting for cluster to form..."
-          sleep 15
-
-      - name: Check cluster health
+      - name: Wait for cluster to be healthy
         run: |
-          rpk cluster health -X brokers=127.0.0.1:19092
-          rpk cluster info -X brokers=127.0.0.1:19092
+          for i in {1..30}; do
+            if rpk cluster health 2>/dev/null | grep -q "Healthy:.*true"; then
+              echo "Cluster is healthy!"
+              rpk cluster health
+              exit 0
+            fi
+            echo "Waiting for cluster to become healthy... ($i/30)"
+            sleep 2
+          done
+          echo "Cluster failed to become healthy"
+          rpk cluster health || true
+          exit 1
 
       - name: Create test topic
         run: |
-          rpk topic create test-topic \
-            --partitions 3 \
-            --replicas 3 \
-            -X brokers=127.0.0.1:19092
-          rpk topic list -X brokers=127.0.0.1:19092
+          rpk topic create test-topic --partitions 3
+          rpk topic list
 
       - name: Produce test messages
         run: |
           for i in {1..10}; do
-            echo "message-$i" | rpk topic produce test-topic -X brokers=127.0.0.1:19092
+            echo "message-$i" | rpk topic produce test-topic
           done
           echo "Produced 10 messages"
 
       - name: Consume and verify messages
         run: |
-          messages=$(rpk topic consume test-topic --num 10 -X brokers=127.0.0.1:19092 -f '%v\n')
+          messages=$(rpk topic consume test-topic --num 10 -f '%v\n')
           echo "Consumed messages:"
           echo "$messages"
           count=$(echo "$messages" | grep -c "message-")
@@ -115,4 +76,4 @@ jobs:
 
       - name: Test topic describe
         run: |
-          rpk topic describe test-topic -X brokers=127.0.0.1:19092
+          rpk topic describe test-topic
