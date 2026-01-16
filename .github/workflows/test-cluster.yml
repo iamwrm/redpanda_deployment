@@ -15,26 +15,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download and extract Redpanda
+      - name: Download and extract Redpanda packages
         run: |
-          # Download the deb package
-          curl -LO https://dl.redpanda.com/public/redpanda/deb/ubuntu/pool/any-version/main/r/re/redpanda_25.3.1-1/redpanda_25.3.1-1_amd64.deb
+          BASE_URL="https://dl.redpanda.com/public/redpanda/deb/ubuntu/pool/any-version/main/r/re"
+          VERSION="25.3.1-1"
 
-          # Extract without installing (no sudo needed)
-          mkdir -p $HOME/redpanda-extract
-          dpkg-deb -x redpanda_25.3.1-1_amd64.deb $HOME/redpanda-extract
+          # Download all required packages
+          curl -LO "${BASE_URL}/redpanda_${VERSION}/redpanda_${VERSION}_amd64.deb"
+          curl -LO "${BASE_URL}/redpanda-rpk_${VERSION}/redpanda-rpk_${VERSION}_amd64.deb"
+          curl -LO "${BASE_URL}/redpanda-tuner_${VERSION}/redpanda-tuner_${VERSION}_amd64.deb"
+
+          # Extract all packages to the same directory
+          mkdir -p $HOME/redpanda
+          dpkg-deb -x redpanda_${VERSION}_amd64.deb $HOME/redpanda
+          dpkg-deb -x redpanda-rpk_${VERSION}_amd64.deb $HOME/redpanda
+          dpkg-deb -x redpanda-tuner_${VERSION}_amd64.deb $HOME/redpanda
 
           # Set up paths
-          echo "$HOME/redpanda-extract/opt/redpanda/bin" >> $GITHUB_PATH
-          echo "$HOME/redpanda-extract/opt/redpanda/libexec" >> $GITHUB_PATH
+          echo "$HOME/redpanda/opt/redpanda/bin" >> $GITHUB_PATH
+          echo "$HOME/redpanda/opt/redpanda/libexec" >> $GITHUB_PATH
+
+          # Set library path for the session
+          echo "LD_LIBRARY_PATH=$HOME/redpanda/opt/redpanda/lib" >> $GITHUB_ENV
 
       - name: Start Redpanda
         run: |
           mkdir -p $HOME/redpanda-data
 
-          export LD_LIBRARY_PATH="$HOME/redpanda-extract/opt/redpanda/lib:$LD_LIBRARY_PATH"
-
-          $HOME/redpanda-extract/opt/redpanda/libexec/redpanda \
+          $HOME/redpanda/opt/redpanda/libexec/redpanda \
             --mode dev-container \
             --smp 1 \
             --memory 1G \
