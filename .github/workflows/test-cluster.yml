@@ -15,20 +15,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Redpanda
+      - name: Download and install Redpanda
         run: |
-          curl -1sLf 'https://dl.redpanda.com/nzc4ZYQK3WRGd9sy/redpanda/cfg/setup/bash.deb.sh' | sudo -E bash
-          sudo apt-get install -y redpanda
+          # Download Redpanda tarball
+          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v24.3.1/redpanda-24.3.1-amd64.tar.gz
+
+          # Extract to local directory
+          mkdir -p $HOME/redpanda
+          tar -xzf redpanda-24.3.1-amd64.tar.gz -C $HOME/redpanda --strip-components=1
+
+          # Add to PATH
+          echo "$HOME/redpanda/bin" >> $GITHUB_PATH
+          echo "$HOME/redpanda/libexec" >> $GITHUB_PATH
 
       - name: Start single-node Redpanda
         run: |
+          # Create data directory
+          mkdir -p $HOME/redpanda-data
+
           # Start Redpanda in dev mode (single node)
-          sudo rpk redpanda start \
+          $HOME/redpanda/libexec/redpanda \
             --mode dev-container \
             --smp 1 \
             --memory 1G \
             --reserve-memory 0M \
             --overprovisioned \
+            --node-id 0 \
+            --kafka-addr 127.0.0.1:9092 \
+            --advertise-kafka-addr 127.0.0.1:9092 \
+            --set redpanda.data_directory=$HOME/redpanda-data \
+            --set redpanda.developer_mode=true \
             &
 
           echo "Waiting for Redpanda to start..."
@@ -37,33 +53,33 @@ jobs:
       - name: Wait for cluster to be healthy
         run: |
           for i in {1..30}; do
-            if rpk cluster health 2>/dev/null | grep -q "Healthy:.*true"; then
+            if $HOME/redpanda/bin/rpk cluster health -X brokers=127.0.0.1:9092 2>/dev/null | grep -q "Healthy:.*true"; then
               echo "Cluster is healthy!"
-              rpk cluster health
+              $HOME/redpanda/bin/rpk cluster health -X brokers=127.0.0.1:9092
               exit 0
             fi
             echo "Waiting for cluster to become healthy... ($i/30)"
             sleep 2
           done
           echo "Cluster failed to become healthy"
-          rpk cluster health || true
+          $HOME/redpanda/bin/rpk cluster health -X brokers=127.0.0.1:9092 || true
           exit 1
 
       - name: Create test topic
         run: |
-          rpk topic create test-topic --partitions 3
-          rpk topic list
+          $HOME/redpanda/bin/rpk topic create test-topic --partitions 3 -X brokers=127.0.0.1:9092
+          $HOME/redpanda/bin/rpk topic list -X brokers=127.0.0.1:9092
 
       - name: Produce test messages
         run: |
           for i in {1..10}; do
-            echo "message-$i" | rpk topic produce test-topic
+            echo "message-$i" | $HOME/redpanda/bin/rpk topic produce test-topic -X brokers=127.0.0.1:9092
           done
           echo "Produced 10 messages"
 
       - name: Consume and verify messages
         run: |
-          messages=$(rpk topic consume test-topic --num 10 -f '%v\n')
+          messages=$($HOME/redpanda/bin/rpk topic consume test-topic --num 10 -X brokers=127.0.0.1:9092 -f '%v\n')
           echo "Consumed messages:"
           echo "$messages"
           count=$(echo "$messages" | grep -c "message-")
@@ -76,4 +92,4 @@ jobs:
 
       - name: Test topic describe
         run: |
-          rpk topic describe test-topic
+          $HOME/redpanda/bin/rpk topic describe test-topic -X brokers=127.0.0.1:9092
