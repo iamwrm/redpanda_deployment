@@ -22,25 +22,13 @@ Configuration and scripts for deploying a 3-node Redpanda cluster on a single ma
 
 ## Quick Start
 
-### Option 1: Docker Compose (Recommended)
+Requires Linux with Redpanda installed.
 
 ```bash
-# Start 3-node cluster
-docker compose up -d
-
-# Check cluster health
-docker exec redpanda-1 rpk cluster health
+# Start cluster
+./start-cluster.sh
 
 # Stop cluster
-docker compose down -v
-```
-
-### Option 2: Native Binary
-
-Requires Linux with kernel AIO support and Redpanda installed at `/opt/redpanda`.
-
-```bash
-./start-cluster.sh
 ./stop-cluster.sh
 ```
 
@@ -67,20 +55,15 @@ Bootstrap servers: `127.0.0.1:19092,127.0.0.1:29092,127.0.0.1:39092`
 ```
 .
 ├── README.md
-├── docker-compose.yml        # Docker-based cluster (recommended)
-├── start-cluster.sh          # Start native Redpanda cluster
-├── stop-cluster.sh           # Stop native Redpanda cluster
-└── redpanda-cluster/         # Native binary configs
+├── start-cluster.sh          # Start Redpanda cluster
+├── stop-cluster.sh           # Stop Redpanda cluster
+└── redpanda-cluster/
     ├── node1/redpanda.yaml
     ├── node2/redpanda.yaml
     └── node3/redpanda.yaml
 ```
 
 ## Troubleshooting
-
-### "open: No such file or directory" error
-
-This indicates missing kernel AIO support. Redpanda requires access to `/proc/sys/fs/aio-max-nr`. Run on a system with full Linux kernel support (not containerized environments without AIO).
 
 ### Ports already in use
 

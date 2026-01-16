@@ -15,34 +15,94 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Start Redpanda cluster
+      - name: Install Redpanda
         run: |
-          docker compose up -d
-          echo "Waiting for cluster to be healthy..."
+          curl -1sLf 'https://dl.redpanda.com/nzc4ZYQK3WRGd9sy/redpanda/cfg/setup/bash.deb.sh' | sudo -E bash
+          sudo apt-get install -y redpanda
+
+      - name: Configure and start Redpanda cluster
+        run: |
+          # Create data directories
+          sudo mkdir -p /var/lib/redpanda/data-{0,1,2}
+          sudo chown -R redpanda:redpanda /var/lib/redpanda
+
+          # Start node 0 (seed node)
+          sudo rpk redpanda start \
+            --node-id 0 \
+            --mode dev-container \
+            --smp 1 \
+            --memory 512M \
+            --reserve-memory 0M \
+            --overprovisioned \
+            --kafka-addr 127.0.0.1:19092 \
+            --advertise-kafka-addr 127.0.0.1:19092 \
+            --rpc-addr 127.0.0.1:33145 \
+            --advertise-rpc-addr 127.0.0.1:33145 \
+            --set redpanda.data_directory=/var/lib/redpanda/data-0 \
+            --set redpanda.seed_servers='[]' \
+            &
+
+          echo "Waiting for seed node to start..."
           sleep 10
+
+          # Start node 1
+          sudo rpk redpanda start \
+            --node-id 1 \
+            --mode dev-container \
+            --smp 1 \
+            --memory 512M \
+            --reserve-memory 0M \
+            --overprovisioned \
+            --kafka-addr 127.0.0.1:29092 \
+            --advertise-kafka-addr 127.0.0.1:29092 \
+            --rpc-addr 127.0.0.1:33146 \
+            --advertise-rpc-addr 127.0.0.1:33146 \
+            --set redpanda.data_directory=/var/lib/redpanda/data-1 \
+            --set redpanda.seed_servers='[{host: {address: 127.0.0.1, port: 33145}}]' \
+            &
+
+          # Start node 2
+          sudo rpk redpanda start \
+            --node-id 2 \
+            --mode dev-container \
+            --smp 1 \
+            --memory 512M \
+            --reserve-memory 0M \
+            --overprovisioned \
+            --kafka-addr 127.0.0.1:39092 \
+            --advertise-kafka-addr 127.0.0.1:39092 \
+            --rpc-addr 127.0.0.1:33147 \
+            --advertise-rpc-addr 127.0.0.1:33147 \
+            --set redpanda.data_directory=/var/lib/redpanda/data-2 \
+            --set redpanda.seed_servers='[{host: {address: 127.0.0.1, port: 33145}}]' \
+            &
+
+          echo "Waiting for cluster to form..."
+          sleep 15
 
       - name: Check cluster health
         run: |
-          docker exec redpanda-1 rpk cluster health
-          docker exec redpanda-1 rpk cluster info
+          rpk cluster health --brokers 127.0.0.1:19092
+          rpk cluster info --brokers 127.0.0.1:19092
 
       - name: Create test topic
         run: |
-          docker exec redpanda-1 rpk topic create test-topic \
+          rpk topic create test-topic \
             --partitions 3 \
-            --replicas 3
-          docker exec redpanda-1 rpk topic list
+            --replicas 3 \
+            --brokers 127.0.0.1:19092
+          rpk topic list --brokers 127.0.0.1:19092
 
       - name: Produce test messages
         run: |
           for i in {1..10}; do
-            echo "message-$i" | docker exec -i redpanda-1 rpk topic produce test-topic
+            echo "message-$i" | rpk topic produce test-topic --brokers 127.0.0.1:19092
           done
           echo "Produced 10 messages"
 
       - name: Consume and verify messages
         run: |
-          messages=$(docker exec redpanda-1 rpk topic consume test-topic --num 10 --format '%v\n')
+          messages=$(rpk topic consume test-topic --num 10 --brokers 127.0.0.1:19092 -f '%v\n')
           echo "Consumed messages:"
           echo "$messages"
           count=$(echo "$messages" | grep -c "message-")
@@ -55,9 +115,4 @@ jobs:
 
       - name: Test topic describe
         run: |
-          docker exec redpanda-1 rpk topic describe test-topic
-
-      - name: Cleanup
-        if: always()
-        run: |
-          docker compose down -v
+          rpk topic describe test-topic --brokers 127.0.0.1:19092
