@@ -31,7 +31,7 @@ jobs:
             --node-id 0 \
             --mode dev-container \
             --smp 1 \
-            --memory 512M \
+            --memory 1G \
             --reserve-memory 0M \
             --overprovisioned \
             --kafka-addr 127.0.0.1:19092 \
@@ -50,7 +50,7 @@ jobs:
             --node-id 1 \
             --mode dev-container \
             --smp 1 \
-            --memory 512M \
+            --memory 1G \
             --reserve-memory 0M \
             --overprovisioned \
             --kafka-addr 127.0.0.1:29092 \
@@ -66,7 +66,7 @@ jobs:
             --node-id 2 \
             --mode dev-container \
             --smp 1 \
-            --memory 512M \
+            --memory 1G \
             --reserve-memory 0M \
             --overprovisioned \
             --kafka-addr 127.0.0.1:39092 \
@@ -82,27 +82,27 @@ jobs:
 
       - name: Check cluster health
         run: |
-          rpk cluster health --brokers 127.0.0.1:19092
-          rpk cluster info --brokers 127.0.0.1:19092
+          rpk cluster health -X brokers=127.0.0.1:19092
+          rpk cluster info -X brokers=127.0.0.1:19092
 
       - name: Create test topic
         run: |
           rpk topic create test-topic \
             --partitions 3 \
             --replicas 3 \
-            --brokers 127.0.0.1:19092
-          rpk topic list --brokers 127.0.0.1:19092
+            -X brokers=127.0.0.1:19092
+          rpk topic list -X brokers=127.0.0.1:19092
 
       - name: Produce test messages
         run: |
           for i in {1..10}; do
-            echo "message-$i" | rpk topic produce test-topic --brokers 127.0.0.1:19092
+            echo "message-$i" | rpk topic produce test-topic -X brokers=127.0.0.1:19092
           done
           echo "Produced 10 messages"
 
       - name: Consume and verify messages
         run: |
-          messages=$(rpk topic consume test-topic --num 10 --brokers 127.0.0.1:19092 -f '%v\n')
+          messages=$(rpk topic consume test-topic --num 10 -X brokers=127.0.0.1:19092 -f '%v\n')
           echo "Consumed messages:"
           echo "$messages"
           count=$(echo "$messages" | grep -c "message-")
@@ -115,4 +115,4 @@ jobs:
 
       - name: Test topic describe
         run: |
-          rpk topic describe test-topic --brokers 127.0.0.1:19092
+          rpk topic describe test-topic -X brokers=127.0.0.1:19092
