@@ -1,6 +1,7 @@
 # Large binary files
 *.tar.gz
 *.tgz
+RELEASE-DATE.txt
 
 # Kafka installation (download separately)
 kafka/
