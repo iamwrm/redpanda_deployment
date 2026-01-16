@@ -39,7 +39,7 @@ jobs:
           mkdir -p $HOME/redpanda-data
 
           # Use bundled dynamic linker to run redpanda
-          $HOME/redpanda/opt/redpanda/lib/ld-linux-x86-64.so.2 \
+          $HOME/redpanda/opt/redpanda/lib/ld.so \
             --library-path "$HOME/redpanda/opt/redpanda/lib" \
             $HOME/redpanda/opt/redpanda/libexec/redpanda \
             --mode dev-container \
