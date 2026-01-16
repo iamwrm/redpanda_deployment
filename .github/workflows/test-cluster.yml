@@ -8,31 +8,56 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-redpanda-config:
+  test-redpanda-cluster:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate Redpanda YAML configs
+      - name: Start Redpanda cluster
         run: |
-          echo "=== Validating Redpanda configuration files ==="
-          for config in redpanda-cluster/node*/redpanda.yaml; do
-            echo "Checking $config..."
-            python3 -c "import yaml; yaml.safe_load(open('$config'))" && echo "  ✓ Valid YAML"
-          done
+          docker compose up -d
+          echo "Waiting for cluster to be healthy..."
+          sleep 10
 
-      - name: Verify cluster configuration consistency
+      - name: Check cluster health
         run: |
-          echo "=== Verifying cluster configuration ==="
-          # Check all nodes have unique node IDs
-          for i in 1 2 3; do
-            node_id=$(grep -oP 'node_id:\s*\K\d+' redpanda-cluster/node$i/redpanda.yaml)
-            echo "Node $i has node_id=$node_id"
-          done
+          docker exec redpanda-1 rpk cluster health
+          docker exec redpanda-1 rpk cluster info
 
-          # Check seed servers are configured
-          echo ""
-          echo "Seed server configuration:"
-          grep -A5 "seed_servers:" redpanda-cluster/node1/redpanda.yaml | head -10
+      - name: Create test topic
+        run: |
+          docker exec redpanda-1 rpk topic create test-topic \
+            --partitions 3 \
+            --replicas 3
+          docker exec redpanda-1 rpk topic list
+
+      - name: Produce test messages
+        run: |
+          for i in {1..10}; do
+            echo "message-$i" | docker exec -i redpanda-1 rpk topic produce test-topic
+          done
+          echo "Produced 10 messages"
+
+      - name: Consume and verify messages
+        run: |
+          messages=$(docker exec redpanda-1 rpk topic consume test-topic --num 10 --format '%v\n')
+          echo "Consumed messages:"
+          echo "$messages"
+          count=$(echo "$messages" | grep -c "message-")
+          echo "Message count: $count"
+          if [ "$count" -ne 10 ]; then
+            echo "ERROR: Expected 10 messages, got $count"
+            exit 1
+          fi
+          echo "All messages verified successfully"
+
+      - name: Test topic describe
+        run: |
+          docker exec redpanda-1 rpk topic describe test-topic
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down -v
