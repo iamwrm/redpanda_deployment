@@ -1,0 +1,64 @@
+# Redpanda Node 3 Configuration
+redpanda:
+  node_id: 2
+  data_directory: "/home/user/redpanda_deployment/redpanda-cluster/node3/data"
+
+  # Seed servers for cluster formation (points to node 0)
+  seed_servers:
+    - host:
+        address: "127.0.0.1"
+        port: 33145
+
+  empty_seed_starts_cluster: false
+
+  # RPC server
+  rpc_server:
+    address: "0.0.0.0"
+    port: 33147
+
+  advertised_rpc_api:
+    address: "127.0.0.1"
+    port: 33147
+
+  # Kafka API
+  kafka_api:
+    - address: "0.0.0.0"
+      port: 39092
+
+  advertised_kafka_api:
+    - address: "127.0.0.1"
+      port: 39092
+
+  # Admin API
+  admin:
+    - address: "0.0.0.0"
+      port: 39644
+
+  # Development mode
+  developer_mode: true
+
+# Pandaproxy
+pandaproxy:
+  pandaproxy_api:
+    - address: "0.0.0.0"
+      port: 38082
+  advertised_pandaproxy_api:
+    - address: "127.0.0.1"
+      port: 38082
+
+# Schema Registry
+schema_registry:
+  schema_registry_api:
+    - address: "0.0.0.0"
+      port: 38081
+  schema_registry_api_doc_dir: "/home/user/redpanda_deployment/usr/share/redpanda/admin-api-doc"
+
+rpk:
+  kafka_api:
+    brokers:
+      - "127.0.0.1:19092"
+      - "127.0.0.1:29092"
+      - "127.0.0.1:39092"
+  admin_api:
+    addresses:
+      - "127.0.0.1:39644"
