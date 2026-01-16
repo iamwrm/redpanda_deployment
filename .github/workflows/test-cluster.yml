@@ -39,22 +39,22 @@ jobs:
           mkdir -p $HOME/redpanda-data
 
           # Create minimal config file
-          cat > $HOME/redpanda.yaml << EOF
-          redpanda:
-            data_directory: $HOME/redpanda-data
-            node_id: 0
-            seed_servers: []
-            rpc_server:
-              address: 127.0.0.1
-              port: 33145
-            kafka_api:
-              - address: 127.0.0.1
-                port: 9092
-            admin:
-              - address: 127.0.0.1
-                port: 9644
-            developer_mode: true
-          EOF
+          cat > $HOME/redpanda.yaml << 'EOF'
+redpanda:
+  data_directory: /home/runner/redpanda-data
+  node_id: 0
+  seed_servers: []
+  rpc_server:
+    address: 127.0.0.1
+    port: 33145
+  kafka_api:
+    - address: 127.0.0.1
+      port: 9092
+  admin:
+    - address: 127.0.0.1
+      port: 9644
+  developer_mode: true
+EOF
 
           # Use bundled dynamic linker to run redpanda
           $HOME/redpanda/opt/redpanda/lib/ld.so \
