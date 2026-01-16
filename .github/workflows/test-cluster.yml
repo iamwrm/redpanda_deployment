@@ -31,17 +31,15 @@ jobs:
           dpkg-deb -x redpanda-rpk_${VERSION}_amd64.deb $HOME/redpanda
           dpkg-deb -x redpanda-tuner_${VERSION}_amd64.deb $HOME/redpanda
 
-          # Set up paths
+          # Set up paths (only for rpk, not the server binary)
           echo "$HOME/redpanda/opt/redpanda/bin" >> $GITHUB_PATH
-          echo "$HOME/redpanda/opt/redpanda/libexec" >> $GITHUB_PATH
-
-          # Set library path for the session
-          echo "LD_LIBRARY_PATH=$HOME/redpanda/opt/redpanda/lib" >> $GITHUB_ENV
 
       - name: Start Redpanda
         run: |
           mkdir -p $HOME/redpanda-data
 
+          # Set LD_LIBRARY_PATH only for this process
+          LD_LIBRARY_PATH="$HOME/redpanda/opt/redpanda/lib" \
           $HOME/redpanda/opt/redpanda/libexec/redpanda \
             --mode dev-container \
             --smp 1 \
