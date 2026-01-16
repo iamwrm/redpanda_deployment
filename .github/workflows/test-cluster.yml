@@ -35,6 +35,12 @@ jobs:
           tar -xzf kafka_2.13-3.9.1.tgz
           mv kafka_2.13-3.9.1 kafka
 
+      - name: Create data directories
+        run: |
+          mkdir -p kafka-cluster/broker1/data
+          mkdir -p kafka-cluster/broker2/data
+          mkdir -p kafka-cluster/broker3/data
+
       - name: Generate Cluster ID
         id: cluster-id
         run: |
