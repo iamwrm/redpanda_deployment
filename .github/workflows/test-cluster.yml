@@ -31,8 +31,8 @@ jobs:
           dpkg-deb -x redpanda-rpk_${VERSION}_amd64.deb $HOME/redpanda
           dpkg-deb -x redpanda-tuner_${VERSION}_amd64.deb $HOME/redpanda
 
-          # Set up paths (only for rpk, not the server binary)
-          echo "$HOME/redpanda/opt/redpanda/bin" >> $GITHUB_PATH
+          # Set up paths - use libexec for actual rpk binary (bin/rpk is a wrapper with hardcoded paths)
+          echo "$HOME/redpanda/opt/redpanda/libexec" >> $GITHUB_PATH
 
       - name: Start Redpanda
         run: |
