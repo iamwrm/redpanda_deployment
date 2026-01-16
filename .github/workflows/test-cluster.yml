@@ -18,11 +18,11 @@ jobs:
       - name: Download and extract Redpanda
         run: |
           # Download the deb package
-          curl -LO https://dl.redpanda.com/public/redpanda/deb/ubuntu/pool/noble/main/r/re/redpanda_25.3.4-1_amd64.deb
+          curl -LO https://dl.redpanda.com/public/redpanda/deb/ubuntu/pool/any-version/main/r/re/redpanda_25.3.1-1/redpanda_25.3.1-1_amd64.deb
 
           # Extract without installing (no sudo needed)
           mkdir -p $HOME/redpanda-extract
-          dpkg-deb -x redpanda_25.3.4-1_amd64.deb $HOME/redpanda-extract
+          dpkg-deb -x redpanda_25.3.1-1_amd64.deb $HOME/redpanda-extract
 
           # Set up paths
           echo "$HOME/redpanda-extract/opt/redpanda/bin" >> $GITHUB_PATH
