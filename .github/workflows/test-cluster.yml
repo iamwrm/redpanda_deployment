@@ -38,20 +38,35 @@ jobs:
         run: |
           mkdir -p $HOME/redpanda-data
 
+          # Create minimal config file
+          cat > $HOME/redpanda.yaml << EOF
+          redpanda:
+            data_directory: $HOME/redpanda-data
+            node_id: 0
+            seed_servers: []
+            rpc_server:
+              address: 127.0.0.1
+              port: 33145
+            kafka_api:
+              - address: 127.0.0.1
+                port: 9092
+            admin:
+              - address: 127.0.0.1
+                port: 9644
+            developer_mode: true
+          EOF
+
           # Use bundled dynamic linker to run redpanda
           $HOME/redpanda/opt/redpanda/lib/ld.so \
             --library-path "$HOME/redpanda/opt/redpanda/lib" \
             $HOME/redpanda/opt/redpanda/libexec/redpanda \
-            --mode dev-container \
+            --redpanda-cfg $HOME/redpanda.yaml \
             --smp 1 \
             --memory 1G \
             --reserve-memory 0M \
             --overprovisioned \
-            --node-id 0 \
-            --kafka-addr 127.0.0.1:9092 \
-            --advertise-kafka-addr 127.0.0.1:9092 \
-            --set redpanda.data_directory=$HOME/redpanda-data \
-            --set redpanda.developer_mode=true \
+            --unsafe-bypass-fsync 1 \
+            --lock-memory false \
             &
 
           echo "Waiting for Redpanda to start..."
