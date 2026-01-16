@@ -1,0 +1,40 @@
+# Large binary files
+*.tar.gz
+*.tgz
+
+# Kafka installation (download separately)
+kafka/
+
+# Redpanda binaries (download separately)
+bin/
+lib/
+libexec/
+openssl/
+conf/
+usr/
+
+# Data directories
+kafka-cluster/*/data/
+kafka-cluster/*/logs/
+redpanda-cluster/*/data/
+logs/
+
+# Python virtual environments
+.venv/
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PID files
+*.pid
+pids.txt
+
+# Log files
+*.log
