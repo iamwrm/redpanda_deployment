@@ -10,22 +10,39 @@ on:
 jobs:
   test-redpanda-cluster:
     runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
 
     steps:
+      - name: Install minimal tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends curl ca-certificates
+
+      - name: Create non-root user
+        run: |
+          useradd -m -s /bin/bash redpanda
+          mkdir -p /home/redpanda
+          chown -R redpanda:redpanda /home/redpanda
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download and extract Redpanda packages
-        run: ./scripts/download-redpanda.sh
+      - name: Fix repository ownership
+        run: chown -R redpanda:redpanda $GITHUB_WORKSPACE
 
-      - name: Add rpk to PATH
-        run: echo "$HOME/redpanda/opt/redpanda/libexec" >> $GITHUB_PATH
+      - name: Download and extract Redpanda packages
+        run: |
+          su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/download-redpanda.sh"
 
       - name: Start Redpanda
-        run: ./scripts/start-redpanda.sh
+        run: |
+          su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/start-redpanda.sh"
 
       - name: Wait for cluster to be healthy
-        run: ./scripts/wait-for-health.sh
+        run: |
+          su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/wait-for-health.sh"
 
       - name: Run cluster tests
-        run: ./scripts/run-tests.sh
+        run: |
+          su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/run-tests.sh"
