@@ -38,8 +38,14 @@ redpanda:
     rpc_server:
         address: 0.0.0.0
         port: 33145
+    advertised_rpc_api:
+        address: 127.0.0.1
+        port: 33145
     kafka_api:
         - address: 0.0.0.0
+          port: 19092
+    advertised_kafka_api:
+        - address: 127.0.0.1
           port: 19092
     admin:
         - address: 0.0.0.0
