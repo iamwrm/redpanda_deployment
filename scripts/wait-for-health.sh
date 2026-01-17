@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# Wait for Redpanda cluster to be healthy
+# Wait for Redpanda 3-node cluster to be healthy
 # Usage: ./wait-for-health.sh [install_dir] [max_attempts]
 
 INSTALL_DIR="${1:-$HOME/redpanda}"
 MAX_ATTEMPTS="${2:-30}"
-BROKERS="${REDPANDA_BROKERS:-127.0.0.1:9092}"
+BROKERS="${REDPANDA_BROKERS:-127.0.0.1:19092}"
 
 RPK_BIN="$INSTALL_DIR/opt/redpanda/libexec/rpk"
 

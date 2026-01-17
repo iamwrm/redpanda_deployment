@@ -1,4 +1,4 @@
-name: Test Redpanda Cluster
+name: Test Redpanda 3-Node Cluster
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
         run: |
           su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/download-redpanda.sh"
 
-      - name: Start Redpanda
+      - name: Start Redpanda 3-node cluster
         run: |
           su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/start-redpanda.sh"
 
@@ -46,3 +46,8 @@ jobs:
       - name: Run cluster tests
         run: |
           su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/run-tests.sh"
+
+      - name: Stop Redpanda cluster
+        if: always()
+        run: |
+          su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/stop-redpanda.sh" || true
