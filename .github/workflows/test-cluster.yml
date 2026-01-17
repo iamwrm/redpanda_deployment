@@ -16,101 +16,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download and extract Redpanda packages
-        run: |
-          BASE_URL="https://dl.redpanda.com/public/redpanda/deb/ubuntu/pool/any-version/main/r/re"
-          VERSION="25.3.1-1"
+        run: ./scripts/download-redpanda.sh
 
-          # Download all required packages
-          curl -LO "${BASE_URL}/redpanda_${VERSION}/redpanda_${VERSION}_amd64.deb"
-          curl -LO "${BASE_URL}/redpanda-rpk_${VERSION}/redpanda-rpk_${VERSION}_amd64.deb"
-          curl -LO "${BASE_URL}/redpanda-tuner_${VERSION}/redpanda-tuner_${VERSION}_amd64.deb"
-
-          # Extract all packages to the same directory
-          mkdir -p $HOME/redpanda
-          dpkg-deb -x redpanda_${VERSION}_amd64.deb $HOME/redpanda
-          dpkg-deb -x redpanda-rpk_${VERSION}_amd64.deb $HOME/redpanda
-          dpkg-deb -x redpanda-tuner_${VERSION}_amd64.deb $HOME/redpanda
-
-          # Set up paths - use libexec for actual rpk binary (bin/rpk is a wrapper with hardcoded paths)
-          echo "$HOME/redpanda/opt/redpanda/libexec" >> $GITHUB_PATH
+      - name: Add rpk to PATH
+        run: echo "$HOME/redpanda/opt/redpanda/libexec" >> $GITHUB_PATH
 
       - name: Start Redpanda
-        run: |
-          mkdir -p $HOME/redpanda-data
-
-          # Create minimal config file using printf to avoid heredoc issues
-          printf '%s\n' \
-            'redpanda:' \
-            '  data_directory: /home/runner/redpanda-data' \
-            '  node_id: 0' \
-            '  seed_servers: []' \
-            '  rpc_server:' \
-            '    address: 127.0.0.1' \
-            '    port: 33145' \
-            '  kafka_api:' \
-            '    - address: 127.0.0.1' \
-            '      port: 9092' \
-            '  admin:' \
-            '    - address: 127.0.0.1' \
-            '      port: 9644' \
-            '  developer_mode: true' > $HOME/redpanda.yaml
-
-          # Use bundled dynamic linker to run redpanda
-          $HOME/redpanda/opt/redpanda/lib/ld.so \
-            --library-path "$HOME/redpanda/opt/redpanda/lib" \
-            $HOME/redpanda/opt/redpanda/libexec/redpanda \
-            --redpanda-cfg $HOME/redpanda.yaml \
-            --smp 1 \
-            --memory 1G \
-            --reserve-memory 0M \
-            --overprovisioned \
-            --unsafe-bypass-fsync 1 \
-            --lock-memory false \
-            &
-
-          echo "Waiting for Redpanda to start..."
-          sleep 10
+        run: ./scripts/start-redpanda.sh
 
       - name: Wait for cluster to be healthy
-        run: |
-          for i in {1..30}; do
-            if rpk cluster health -X brokers=127.0.0.1:9092 2>/dev/null | grep -q "Healthy:.*true"; then
-              echo "Cluster is healthy!"
-              rpk cluster health -X brokers=127.0.0.1:9092
-              exit 0
-            fi
-            echo "Waiting for cluster to become healthy... ($i/30)"
-            sleep 2
-          done
-          echo "Cluster failed to become healthy"
-          rpk cluster health -X brokers=127.0.0.1:9092 || true
-          exit 1
+        run: ./scripts/wait-for-health.sh
 
-      - name: Create test topic
-        run: |
-          rpk topic create test-topic --partitions 3 -X brokers=127.0.0.1:9092
-          rpk topic list -X brokers=127.0.0.1:9092
-
-      - name: Produce test messages
-        run: |
-          for i in {1..10}; do
-            echo "message-$i" | rpk topic produce test-topic -X brokers=127.0.0.1:9092
-          done
-          echo "Produced 10 messages"
-
-      - name: Consume and verify messages
-        run: |
-          messages=$(rpk topic consume test-topic --num 10 -X brokers=127.0.0.1:9092 -f '%v\n')
-          echo "Consumed messages:"
-          echo "$messages"
-          count=$(echo "$messages" | grep -c "message-")
-          echo "Message count: $count"
-          if [ "$count" -ne 10 ]; then
-            echo "ERROR: Expected 10 messages, got $count"
-            exit 1
-          fi
-          echo "All messages verified successfully"
-
-      - name: Test topic describe
-        run: |
-          rpk topic describe test-topic -X brokers=127.0.0.1:9092
+      - name: Run cluster tests
+        run: ./scripts/run-tests.sh
