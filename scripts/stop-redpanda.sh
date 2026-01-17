@@ -1,57 +1,41 @@
 #!/bin/bash
 set -euo pipefail
 
-# Stop Redpanda 3-node cluster
+# Stop Redpanda
 # Usage: ./stop-redpanda.sh [data_dir]
 
 DATA_DIR="${1:-$HOME/redpanda-data}"
-CLUSTER_DIR="$DATA_DIR/cluster"
-PID_FILE="$CLUSTER_DIR/pids.txt"
+PID_FILE="$DATA_DIR/redpanda.pid"
 
-echo "=== Stopping Redpanda 3-node cluster ==="
+echo "=== Stopping Redpanda ==="
 
 if [ -f "$PID_FILE" ]; then
-    PIDS=$(cat "$PID_FILE")
-    echo "Stopping Redpanda nodes with PIDs: $PIDS"
+    PID=$(cat "$PID_FILE")
+    echo "Stopping Redpanda with PID: $PID"
 
-    for pid in $PIDS; do
-        if kill -0 "$pid" 2>/dev/null; then
-            echo "Stopping PID $pid..."
-            kill "$pid" 2>/dev/null || true
-        else
-            echo "PID $pid not running"
-        fi
-    done
+    if kill -0 "$PID" 2>/dev/null; then
+        kill "$PID" 2>/dev/null || true
 
-    # Wait for graceful shutdown
-    echo "Waiting for graceful shutdown..."
-    for i in {1..30}; do
-        all_stopped=true
-        for pid in $PIDS; do
-            if kill -0 "$pid" 2>/dev/null; then
-                all_stopped=false
-                break
+        # Wait for graceful shutdown
+        echo "Waiting for graceful shutdown..."
+        for i in {1..30}; do
+            if ! kill -0 "$PID" 2>/dev/null; then
+                echo "Redpanda stopped gracefully"
+                rm -f "$PID_FILE"
+                echo "=== Stopped ==="
+                exit 0
             fi
+            sleep 1
         done
 
-        if $all_stopped; then
-            echo "All nodes stopped gracefully"
-            rm -f "$PID_FILE"
-            echo "=== Cluster stopped ==="
-            exit 0
-        fi
-        sleep 1
-    done
-
-    # Force kill if still running
-    echo "Force killing remaining processes..."
-    for pid in $PIDS; do
-        if kill -0 "$pid" 2>/dev/null; then
-            echo "Force killing PID $pid..."
-            kill -9 "$pid" 2>/dev/null || true
-        fi
-    done
-    rm -f "$PID_FILE"
+        # Force kill if still running
+        echo "Force killing PID $PID..."
+        kill -9 "$PID" 2>/dev/null || true
+        rm -f "$PID_FILE"
+    else
+        echo "PID $PID not running"
+        rm -f "$PID_FILE"
+    fi
 else
     echo "No PID file found at $PID_FILE"
     echo "Trying to find redpanda processes..."
@@ -65,4 +49,4 @@ else
     fi
 fi
 
-echo "=== Cluster stopped ==="
+echo "=== Stopped ==="
