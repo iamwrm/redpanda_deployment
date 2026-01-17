@@ -11,7 +11,7 @@ jobs:
   test-redpanda-cluster:
     runs-on: ubuntu-latest
     container:
-      image: debian:trixie
+      image: debian:trixie-slim
 
     steps:
       - name: Install minimal tools
