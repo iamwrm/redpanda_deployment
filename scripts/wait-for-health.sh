@@ -7,18 +7,20 @@ set -euo pipefail
 INSTALL_DIR="${1:-$HOME/redpanda}"
 MAX_ATTEMPTS="${2:-30}"
 BROKERS="${REDPANDA_BROKERS:-127.0.0.1:19092}"
+ADMIN_API="${REDPANDA_ADMIN_API:-127.0.0.1:19644}"
 
 RPK_BIN="$INSTALL_DIR/opt/redpanda/libexec/rpk"
 
 echo "=== Waiting for Redpanda cluster to be healthy ==="
 echo "Brokers: $BROKERS"
+echo "Admin API: $ADMIN_API"
 echo "Max attempts: $MAX_ATTEMPTS"
 
 for i in $(seq 1 "$MAX_ATTEMPTS"); do
-    if "$RPK_BIN" cluster health -X brokers="$BROKERS" 2>/dev/null | grep -q "Healthy:.*true"; then
+    if "$RPK_BIN" cluster health -X brokers="$BROKERS" -X admin.hosts="$ADMIN_API" 2>/dev/null | grep -q "Healthy:.*true"; then
         echo ""
         echo "Cluster is healthy!"
-        "$RPK_BIN" cluster health -X brokers="$BROKERS"
+        "$RPK_BIN" cluster health -X brokers="$BROKERS" -X admin.hosts="$ADMIN_API"
         exit 0
     fi
     echo "Waiting for cluster to become healthy... ($i/$MAX_ATTEMPTS)"
@@ -27,5 +29,5 @@ done
 
 echo ""
 echo "ERROR: Cluster failed to become healthy after $MAX_ATTEMPTS attempts"
-"$RPK_BIN" cluster health -X brokers="$BROKERS" || true
+"$RPK_BIN" cluster health -X brokers="$BROKERS" -X admin.hosts="$ADMIN_API" || true
 exit 1
