@@ -32,42 +32,34 @@ mkdir -p "$CLUSTER_DIR/node3/data"
 echo "Creating Node 1 config..."
 cat > "$CLUSTER_DIR/node1/redpanda.yaml" <<EOF
 redpanda:
-  data_directory: $CLUSTER_DIR/node1/data
-  node_id: 0
-  empty_seed_starts_cluster: true
-  seed_servers: []
-  rpc_server:
-    address: 0.0.0.0
-    port: 33145
-  kafka_api:
-    - address: 0.0.0.0
-      port: 19092
-  admin:
-    - address: 0.0.0.0
-      port: 19644
-  advertised_rpc_api:
-    address: 127.0.0.1
-    port: 33145
-  advertised_kafka_api:
-    - address: 127.0.0.1
-      port: 19092
-  developer_mode: true
-  auto_create_topics_enabled: true
-  fetch_reads_debounce_timeout: 10
-  group_initial_rebalance_delay: 0
-  group_topic_partitions: 3
-  log_segment_size_min: 1
-  storage_min_free_bytes: 10485760
-  topic_partitions_per_shard: 1000
-  write_caching_default: "true"
+    data_directory: $CLUSTER_DIR/node1/data
+    node_id: 0
+    empty_seed_starts_cluster: true
+    seed_servers: []
+    rpc_server:
+        address: 0.0.0.0
+        port: 33145
+    kafka_api:
+        - address: 0.0.0.0
+          port: 19092
+    admin:
+        - address: 0.0.0.0
+          port: 19644
+    advertised_rpc_api:
+        address: 127.0.0.1
+        port: 33145
+    advertised_kafka_api:
+        - address: 127.0.0.1
+          port: 19092
+    developer_mode: true
 rpk:
-  kafka_api:
-    brokers:
-      - 127.0.0.1:19092
-  admin_api:
-    addresses:
-      - 127.0.0.1:19644
-  overprovisioned: true
+    kafka_api:
+        brokers:
+            - 127.0.0.1:19092
+    admin_api:
+        addresses:
+            - 127.0.0.1:19644
+    overprovisioned: true
 pandaproxy: {}
 schema_registry: {}
 EOF
@@ -76,39 +68,39 @@ EOF
 echo "Creating Node 2 config..."
 cat > "$CLUSTER_DIR/node2/redpanda.yaml" <<EOF
 redpanda:
-  data_directory: $CLUSTER_DIR/node2/data
-  node_id: 1
-  empty_seed_starts_cluster: false
-  seed_servers:
-    - host:
+    data_directory: $CLUSTER_DIR/node2/data
+    node_id: 1
+    empty_seed_starts_cluster: false
+    seed_servers:
+        - host:
+              address: 127.0.0.1
+              port: 33145
+    rpc_server:
+        address: 0.0.0.0
+        port: 33146
+    kafka_api:
+        - address: 0.0.0.0
+          port: 29092
+    admin:
+        - address: 0.0.0.0
+          port: 29644
+    advertised_rpc_api:
         address: 127.0.0.1
-        port: 33145
-  rpc_server:
-    address: 0.0.0.0
-    port: 33146
-  kafka_api:
-    - address: 0.0.0.0
-      port: 29092
-  admin:
-    - address: 0.0.0.0
-      port: 29644
-  advertised_rpc_api:
-    address: 127.0.0.1
-    port: 33146
-  advertised_kafka_api:
-    - address: 127.0.0.1
-      port: 29092
-  developer_mode: true
+        port: 33146
+    advertised_kafka_api:
+        - address: 127.0.0.1
+          port: 29092
+    developer_mode: true
 rpk:
-  kafka_api:
-    brokers:
-      - 127.0.0.1:19092
-      - 127.0.0.1:29092
-      - 127.0.0.1:39092
-  admin_api:
-    addresses:
-      - 127.0.0.1:29644
-  overprovisioned: true
+    kafka_api:
+        brokers:
+            - 127.0.0.1:19092
+            - 127.0.0.1:29092
+            - 127.0.0.1:39092
+    admin_api:
+        addresses:
+            - 127.0.0.1:29644
+    overprovisioned: true
 pandaproxy: {}
 schema_registry: {}
 EOF
@@ -117,45 +109,45 @@ EOF
 echo "Creating Node 3 config..."
 cat > "$CLUSTER_DIR/node3/redpanda.yaml" <<EOF
 redpanda:
-  data_directory: $CLUSTER_DIR/node3/data
-  node_id: 2
-  empty_seed_starts_cluster: false
-  seed_servers:
-    - host:
+    data_directory: $CLUSTER_DIR/node3/data
+    node_id: 2
+    empty_seed_starts_cluster: false
+    seed_servers:
+        - host:
+              address: 127.0.0.1
+              port: 33145
+    rpc_server:
+        address: 0.0.0.0
+        port: 33147
+    kafka_api:
+        - address: 0.0.0.0
+          port: 39092
+    admin:
+        - address: 0.0.0.0
+          port: 39644
+    advertised_rpc_api:
         address: 127.0.0.1
-        port: 33145
-  rpc_server:
-    address: 0.0.0.0
-    port: 33147
-  kafka_api:
-    - address: 0.0.0.0
-      port: 39092
-  admin:
-    - address: 0.0.0.0
-      port: 39644
-  advertised_rpc_api:
-    address: 127.0.0.1
-    port: 33147
-  advertised_kafka_api:
-    - address: 127.0.0.1
-      port: 39092
-  developer_mode: true
+        port: 33147
+    advertised_kafka_api:
+        - address: 127.0.0.1
+          port: 39092
+    developer_mode: true
 rpk:
-  kafka_api:
-    brokers:
-      - 127.0.0.1:19092
-      - 127.0.0.1:29092
-      - 127.0.0.1:39092
-  admin_api:
-    addresses:
-      - 127.0.0.1:39644
-  overprovisioned: true
+    kafka_api:
+        brokers:
+            - 127.0.0.1:19092
+            - 127.0.0.1:29092
+            - 127.0.0.1:39092
+    admin_api:
+        addresses:
+            - 127.0.0.1:39644
+    overprovisioned: true
 pandaproxy: {}
 schema_registry: {}
 EOF
 
 # Common options for all nodes
-COMMON_OPTS="--smp 1 --memory 512M --reserve-memory 0M --overprovisioned --unsafe-bypass-fsync 1 --lock-memory false"
+COMMON_OPTS="--smp 1 --memory 256M --reserve-memory 0M --overprovisioned --unsafe-bypass-fsync 1 --lock-memory false"
 
 # Start Node 1 (seed node)
 echo "Starting Node 1 (node_id=0, seed node)..."
@@ -170,7 +162,7 @@ echo "Node 1 started with PID: $NODE1_PID"
 
 # Wait for seed node to be ready
 echo "Waiting for seed node to initialize..."
-sleep 5
+sleep 8
 
 # Start Node 2
 echo "Starting Node 2 (node_id=1)..."
@@ -182,6 +174,10 @@ echo "Starting Node 2 (node_id=1)..."
     &
 NODE2_PID=$!
 echo "Node 2 started with PID: $NODE2_PID"
+
+# Wait for node 2 to join
+echo "Waiting for Node 2 to join..."
+sleep 5
 
 # Start Node 3
 echo "Starting Node 3 (node_id=2)..."
