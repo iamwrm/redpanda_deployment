@@ -6,20 +6,20 @@ set -euo pipefail
 #
 # This script will:
 # 1. Download Redpanda (if not already present)
-# 2. Start Redpanda server
+# 2. Start Redpanda
 # 3. Wait for cluster health
 # 4. Run tests
-# 5. Stop Redpanda (optional cleanup)
+# 5. (Leaves Redpanda running for cleanup script)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INSTALL_DIR="${1:-$HOME/redpanda}"
 DATA_DIR="${2:-$HOME/redpanda-data}"
 
-# Export for child scripts
-export REDPANDA_BROKERS="${REDPANDA_BROKERS:-127.0.0.1:9092}"
+# Export for child scripts - use cluster-compatible endpoint
+export REDPANDA_BROKERS="${REDPANDA_BROKERS:-127.0.0.1:19092}"
 
 echo "========================================"
-echo "  Redpanda Cluster Test Suite"
+echo "  Redpanda Test Suite"
 echo "========================================"
 echo "Install dir: $INSTALL_DIR"
 echo "Data dir: $DATA_DIR"

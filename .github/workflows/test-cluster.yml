@@ -46,3 +46,8 @@ jobs:
       - name: Run cluster tests
         run: |
           su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/run-tests.sh"
+
+      - name: Stop Redpanda
+        if: always()
+        run: |
+          su - redpanda -c "cd $GITHUB_WORKSPACE && ./scripts/stop-redpanda.sh" || true

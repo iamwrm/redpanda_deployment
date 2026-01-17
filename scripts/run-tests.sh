@@ -1,11 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-# Run Redpanda cluster tests
+# Run Redpanda 3-node cluster tests
 # Usage: ./run-tests.sh [install_dir]
 
 INSTALL_DIR="${1:-$HOME/redpanda}"
-BROKERS="${REDPANDA_BROKERS:-127.0.0.1:9092}"
+BROKERS="${REDPANDA_BROKERS:-127.0.0.1:19092}"
 TEST_TOPIC="${TEST_TOPIC:-test-topic}"
 MESSAGE_COUNT="${MESSAGE_COUNT:-10}"
 
